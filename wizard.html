@@ -42,6 +42,24 @@
       border-color: #2563eb;
     }
     .muted { color: #9fb0d0; }
+    .options {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .option {
+      border: 1px solid #223055;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      background: #0f1830;
+    }
+    .option.active {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 1px #60a5fa inset;
+    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -51,17 +69,79 @@
 
     <div class="card">
       <strong>目前狀態：</strong>
-      <span>Step 0：頁面骨架完成</span>
+      <span id="stepLabel">Step 0：選擇分類</span>
     </div>
 
     <div class="nav">
-      <button class="btn">上一步</button>
-      <button class="btn primary">下一步</button>
+      <button id="prevBtn" class="btn">上一步</button>
+      <button id="nextBtn" class="btn primary">下一步</button>
     </div>
 
-    <div class="card">
-      <p>這裡之後會放每一步的表單內容。</p>
+    <!-- Step 0 -->
+    <div id="step0" class="card">
+      <h3>Step 0：選擇 SOP 分類</h3>
+      <div class="options">
+        <div class="option" data-value="營運">營運</div>
+        <div class="option" data-value="放映">放映</div>
+      </div>
+      <p class="muted">請先選擇分類。</p>
+    </div>
+
+    <!-- Step 1 -->
+    <div id="step1" class="card hidden">
+      <h3>Step 1：基本資料</h3>
+      <label>
+        SOP 名稱<br/>
+        <input id="sopName" type="text" placeholder="例如：放映設備重新啟動流程"
+               style="width:100%; padding:8px; margin-top:6px; border-radius:8px; border:1px solid #223055; background:#0f1830; color:#e6eefc;">
+      </label>
+      <p class="muted">分類：<span id="categoryLabel">尚未選擇</span></p>
     </div>
   </div>
+
+  <script>
+    let currentStep = 0;
+    let category = "";
+
+    const stepLabel = document.getElementById("stepLabel");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const step0 = document.getElementById("step0");
+    const step1 = document.getElementById("step1");
+    const categoryLabel = document.getElementById("categoryLabel");
+    const options = document.querySelectorAll(".option");
+
+    function render() {
+      step0.classList.toggle("hidden", currentStep !== 0);
+      step1.classList.toggle("hidden", currentStep !== 1);
+      stepLabel.textContent = currentStep === 0 ? "Step 0：選擇分類" : "Step 1：基本資料";
+      prevBtn.disabled = currentStep === 0;
+    }
+
+    options.forEach(opt => {
+      opt.addEventListener("click", () => {
+        options.forEach(o => o.classList.remove("active"));
+        opt.classList.add("active");
+        category = opt.dataset.value;
+        categoryLabel.textContent = category;
+      });
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentStep === 0 && !category) {
+        alert("請先選擇分類（營運 或 放映）");
+        return;
+      }
+      if (currentStep < 1) currentStep++;
+      render();
+    });
+
+    prevBtn.addEventListener("click", () => {
+      if (currentStep > 0) currentStep--;
+      render();
+    });
+
+    render();
+  </script>
 </body>
 </html>
