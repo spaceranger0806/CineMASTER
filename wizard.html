@@ -42,24 +42,24 @@
       border-color: #2563eb;
     }
     .muted { color: #9fb0d0; }
-    .options {
-      display: flex;
-      gap: 12px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
+    .options { display:flex; gap:12px; flex-wrap:wrap; }
     .option {
-      border: 1px solid #223055;
-      border-radius: 10px;
-      padding: 10px 12px;
-      cursor: pointer;
-      background: #0f1830;
+      border: 1px solid #223055; border-radius: 10px; padding: 10px 12px;
+      cursor: pointer; background: #0f1830;
     }
-    .option.active {
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 1px #60a5fa inset;
+    .option.active { border-color:#60a5fa; box-shadow:0 0 0 1px #60a5fa inset; }
+    .hidden { display:none; }
+    .step-item {
+      display:flex; gap:8px; align-items:center; margin:8px 0;
+      border:1px solid #223055; border-radius:10px; padding:8px; background:#0f1830;
     }
-    .hidden { display: none; }
+    .step-item input {
+      flex:1; background:#0b1220; color:#e6eefc; border:1px solid #223055; border-radius:8px; padding:6px 8px;
+    }
+    .drag { cursor: grab; opacity:.8; }
+    .list { min-height: 40px; }
+    .hint { font-size:12px; color:#9fb0d0; }
+    .pill { font-size:12px; padding:2px 8px; border:1px solid #223055; border-radius:999px; }
   </style>
 </head>
 <body>
@@ -97,6 +97,23 @@
       </label>
       <p class="muted">分類：<span id="categoryLabel">尚未選擇</span></p>
     </div>
+
+    <!-- Step 2 -->
+    <div id="step2" class="card hidden">
+      <h3>Step 2：快速版步驟</h3>
+
+      <div class="pill">非緊急（早上開機異常）</div>
+      <div id="listA" class="list"></div>
+      <div class="hint">一條一條新增，可拖曳改順序</div>
+      <button class="btn" onclick="addStep('A')">＋ 新增步驟（非緊急）</button>
+
+      <hr style="border:none;border-top:1px solid #223055; margin:12px 0">
+
+      <div class="pill">緊急（放映途中異常）</div>
+      <div id="listB" class="list"></div>
+      <div class="hint">建議包含「同步通知營運」</div>
+      <button class="btn" onclick="addStep('B')">＋ 新增步驟（緊急）</button>
+    </div>
   </div>
 
   <script>
@@ -108,13 +125,18 @@
     const nextBtn = document.getElementById("nextBtn");
     const step0 = document.getElementById("step0");
     const step1 = document.getElementById("step1");
+    const step2 = document.getElementById("step2");
     const categoryLabel = document.getElementById("categoryLabel");
     const options = document.querySelectorAll(".option");
 
     function render() {
       step0.classList.toggle("hidden", currentStep !== 0);
       step1.classList.toggle("hidden", currentStep !== 1);
-      stepLabel.textContent = currentStep === 0 ? "Step 0：選擇分類" : "Step 1：基本資料";
+      step2.classList.toggle("hidden", currentStep !== 2);
+      stepLabel.textContent =
+        currentStep === 0 ? "Step 0：選擇分類" :
+        currentStep === 1 ? "Step 1：基本資料" :
+        "Step 2：快速版步驟";
       prevBtn.disabled = currentStep === 0;
     }
 
@@ -128,11 +150,10 @@
     });
 
     nextBtn.addEventListener("click", () => {
-      if (currentStep === 0 && !category) {
-        alert("請先選擇分類（營運 或 放映）");
-        return;
-      }
-      if (currentStep < 1) currentStep++;
+      if (currentStep === 0 && !category) return alert("請先選擇分類（營運 或 放映）");
+      if (currentStep === 1 && !document.getElementById("sopName").value.trim())
+        return alert("請輸入 SOP 名稱");
+      if (currentStep < 2) currentStep++;
       render();
     });
 
@@ -140,6 +161,47 @@
       if (currentStep > 0) currentStep--;
       render();
     });
+
+    function addStep(type) {
+      const list = document.getElementById(type === 'A' ? 'listA' : 'listB');
+      const item = document.createElement('div');
+      item.className = 'step-item';
+      item.draggable = true;
+      item.innerHTML = `
+        <span class="drag">☰</span>
+        <input type="text" placeholder="輸入步驟內容…" />
+        <button class="btn" onclick="this.parentElement.remove()">刪除</button>
+      `;
+      addDragAndDrop(item, list);
+      list.appendChild(item);
+    }
+
+    function addDragAndDrop(item, list) {
+      item.addEventListener('dragstart', e => {
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+
+      list.addEventListener('dragover', e => {
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        const after = getDragAfterElement(list, e.clientY);
+        if (!after) list.appendChild(dragging);
+        else list.insertBefore(dragging, after);
+      });
+    }
+
+    function getDragAfterElement(container, y) {
+      const els = [...container.querySelectorAll('.step-item:not(.dragging)')];
+      return els.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        } else return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
 
     render();
   </script>
